@@ -128,19 +128,24 @@ getElementShape = (window, element, viewport, parents) ->
   # hints to line-wrapped links.
   rects = element.getClientRects()
   totalArea = 0
+  visibleArea = 0
   visibleRects = []
-  for rect in rects when isInsideViewport(rect, viewport)
-    visibleRect = adjustRectToViewport(rect, viewport)
-    totalArea += visibleRect.area
-    visibleRects.push(visibleRect)
+  for rect in rects
+    totalArea += rect.height * rect.width
+    if isInsideViewport(rect, viewport)
+      visibleRect = adjustRectToViewport(rect, viewport)
+      visibleArea += visibleRect.area
+      visibleRects.push(visibleRect)
 
   # If `element` has no area there is nothing to click. It is likely hidden
   # using `display: none;`. However, if all the children of `element` are
   # floated and/or absolutely positioned, then the area is 0, too. In that case
   # it is actually possible to click `element` by clicking one of its children.
-  # For performance, let’s ignore this case until it’s needed. I haven’t found
-  # a need for this on real sites.
-  return null if totalArea == 0
+  if totalArea == 0 and visibleArea == 0
+    for child in element.children
+      if childShape = getElementShape(window, child, viewport, parents)
+        return childShape
+    return null
 
   for visibleRect in visibleRects
     nonCoveredPoint = getFirstNonCoveredPoint(window, element, visibleRect, parents)
@@ -149,7 +154,7 @@ getElementShape = (window, element, viewport, parents) ->
   return null unless nonCoveredPoint
 
   return {
-    rects, visibleRects, nonCoveredPoint, area: totalArea
+    rects, visibleRects, nonCoveredPoint, area: visibleArea
   }
 
 
