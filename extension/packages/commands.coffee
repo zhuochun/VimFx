@@ -188,8 +188,8 @@ command_restore_tab = (vim) ->
 
 helper_follow = ({ inTab, multiple }, vim) ->
   callback = (matchedMarker, markers) ->
-    if matchedmarker.element.target == '_blank'
-      targetReset = matchedmarker.element.target
+    if matchedMarker.element.target == '_blank'
+      targetReset = matchedMarker.element.target
       matchedMarker.element.target = ''
 
     matchedMarker.element.focus()
