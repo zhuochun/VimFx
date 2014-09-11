@@ -29,12 +29,46 @@ injectHelp = (document, commands) ->
     container.addEventListener('click',
       addHandler.bind(undefined, document, commands), false)
 
-    if button = document.getElementById('VimFxClose')
-      clickHandler = (event) ->
+    if closeButton = document.getElementById('VimFxClose')
+      closeHandler = (event) ->
         event.stopPropagation()
         event.preventDefault()
         removeHelp(document)
-      button.addEventListener('click', clickHandler, false)
+      closeButton.addEventListener('click', closeHandler, false)
+
+    if exportButton = document.getElementById('VimFxExport')
+      exportHandler = (event) ->
+        event.stopPropagation()
+        event.preventDefault()
+        console.log("exporting")
+        exportShortcuts(commands, document.getElementById('VimFxImportExport'))
+      exportButton.addEventListener('click', exportHandler, false)
+
+    if importButton = document.getElementById('VimFxImport')
+      importHandler = (event) ->
+        event.stopPropagation()
+        event.preventDefault()
+        console.log("importing")
+        importShortcuts(commands, document.getElementById('VimFxImportExport'))
+      importButton.addEventListener('click', importHandler, false)
+
+exportShortcuts = (commands, textarea) ->
+  lines = []
+  for command in commands
+    lines.push(command.export()) if command.export()
+  text = lines.join('\n')
+  textarea.textContent = text
+  utils.writeToClipboard(text)
+
+importShortcuts = (commands, textarea) ->
+  commandsToImport = {}
+
+  lines = textarea.textContent.split('\n')
+  for line in lines
+    values = line.split(' ')
+    commandsToImport[values[0]] = values[1].split(',')
+
+  console.log(commandsToImport)
 
 promptService = Cc['@mozilla.org/embedcomp/prompt-service;1']
   .getService(Ci.nsIPromptService)
@@ -173,9 +207,19 @@ helpDialogHtml = (commands) ->
         #{ section(_('help_section_misc'),   commands.filter((a) -> a.group == 'misc')) }
       </div>
       <div class="VimFxClearFix"></div>
+
+      <div>
+        <div>
+          <textarea id="VimFxImportExport" rows="3"></textarea>
+        </div>
+      </div>
     </div>
 
     <div class="VimFxFooter">
+      <p>
+        <a href="#" class="VimFxExport" id="VimFxExport">Export</a>
+        <a href="#" class="VimFxImport" id="VimFxImport">Import</a>
+      </p>
       <p>#{ _('help_overlapping_hints') }</p>
       <p>
         #{ _('help_found_bug') }

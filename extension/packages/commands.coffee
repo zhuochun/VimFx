@@ -327,6 +327,9 @@ class Command
       @keyValues = value or @defaultKeyValues
       setPref(@prefName('keys'), value and JSON.stringify(value))
 
+  export: ->
+    "#{ @name } #{ @keyValues.join(',') }" if isPrefSet(@prefName('keys'))
+
   help: -> _("help_command_#{ @name }")
 
 commands = [
