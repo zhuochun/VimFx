@@ -148,33 +148,29 @@ command_open_tab_near_current = (vim) ->
   gBrowser.selectedTab = newTab
   vim.rootWindow.focusAndSelectUrlBar()
 
+helper_switch_tab = (gBrowser, direction, count) ->
+  if count == 1
+    gBrowser.tabContainer.advanceSelectedTab(direction, wrap = true)
+  else
+    tabs = gBrowser.visibleTabs
+
+    currentIndex = tabs.indexOf(gBrowser.selectedTab)
+    targetIndex = currentIndex + (count * direction)
+
+    if targetIndex < 1
+      gBrowser.selectTabAtIndex(0)
+    else if targetIndex >= tabs.length
+      gBrowser.selectTabAtIndex(tabs.length - 1)
+    else
+      gBrowser.selectTabAtIndex(targetIndex)
+
 # Switch to the previous tab.
 command_tab_prev = (vim, event, count) ->
-  if count == 1
-    wrap = true
-    vim.rootWindow.gBrowser.tabContainer.advanceSelectedTab(-1, wrap) # wrap
-  else
-    visibleTabs = vim.rootWindow.gBrowser._visibleTabs
-    currentIndex = visibleTabs.indexOf(vim.rootWindow.gBrowser.mCurrentTab)
-
-    if currentIndex - count < 1
-      vim.rootWindow.gBrowser.selectTabAtIndex(0)
-    else
-      vim.rootWindow.gBrowser.selectTabAtIndex(currentIndex - count)
+  helper_switch_tab(vim.rootWindow.gBrowser, -1, count)
 
 # Switch to the next tab.
 command_tab_next = (vim, event, count) ->
-  if count == 1
-    wrap = true
-    vim.rootWindow.gBrowser.tabContainer.advanceSelectedTab(+1, wrap) # wrap
-  else
-    visibleTabs = vim.rootWindow.gBrowser._visibleTabs
-    currentIndex = visibleTabs.indexOf(vim.rootWindow.gBrowser.mCurrentTab)
-
-    if currentIndex + count >= visibleTabs.length
-      vim.rootWindow.gBrowser.selectTabAtIndex(visibleTabs.length - 1)
-    else
-      vim.rootWindow.gBrowser.selectTabAtIndex(currentIndex + count)
+  helper_switch_tab(vim.rootWindow.gBrowser, +1, count)
 
 # Move the current tab backward.
 command_tab_move_left = (vim) ->
