@@ -142,35 +142,31 @@ command_open_tab = (vim) ->
 # Open a new tab next to the current tab and select the Address Bar.
 command_open_tab_near_current = (vim) ->
   gBrowser = vim.rootWindow.gBrowser
-  newTab = gBrowser.addTab("about:newtab")
+  newTab = gBrowser.addTab('about:newtab')
   newTabPos = gBrowser.selectedTab._tPos + 1
   gBrowser.moveTabTo(newTab, newTabPos)
   gBrowser.selectedTab = newTab
   vim.rootWindow.focusAndSelectUrlBar()
 
-helper_switch_tab = (gBrowser, direction, count) ->
+helper_switch_tab = (direction, vim, event, count) ->
+  gBrowser = vim.rootWindow.gBrowser
+
   if count == 1
     gBrowser.tabContainer.advanceSelectedTab(direction, wrap = true)
   else
-    tabs = gBrowser.visibleTabs
+    currentIndex = gBrowser.visibleTabs.indexOf(gBrowser.selectedTab)
 
-    currentIndex = tabs.indexOf(gBrowser.selectedTab)
-    targetIndex = currentIndex + (count * direction)
+    targetIndex = currentIndex + count * direction
+    targetIndex = Math.max(0, targetIndex)
+    targetIndex = Math.min(targetIndex, gBrowser.visibleTabs.length - 1)
 
-    if targetIndex < 1
-      gBrowser.selectTabAtIndex(0)
-    else if targetIndex >= tabs.length
-      gBrowser.selectTabAtIndex(tabs.length - 1)
-    else
-      gBrowser.selectTabAtIndex(targetIndex)
+    gBrowser.selectTabAtIndex(targetIndex)
 
 # Switch to the previous tab.
-command_tab_prev = (vim, event, count) ->
-  helper_switch_tab(vim.rootWindow.gBrowser, -1, count)
+command_tab_prev = helper_switch_tab.bind(undefined, -1)
 
 # Switch to the next tab.
-command_tab_next = (vim, event, count) ->
-  helper_switch_tab(vim.rootWindow.gBrowser, +1, count)
+command_tab_next = helper_switch_tab.bind(undefined, +1)
 
 # Move the current tab backward.
 command_tab_move_left = (vim) ->
@@ -214,19 +210,22 @@ command_close_tab = (vim) ->
 command_restore_tab = (vim) ->
   vim.rootWindow.undoCloseTab()
 
-helper_follow = ({ inTab, multiple }, vim) ->
+helper_follow = ({ inTab, multiple }, vim, event, count) ->
   callback = (matchedMarker, markers) ->
     if matchedMarker.element.target == '_blank'
       targetReset = matchedMarker.element.target
       matchedMarker.element.target = ''
 
     matchedMarker.element.focus()
-    utils.simulateClick(matchedMarker.element, {metaKey: inTab, ctrlKey: inTab})
+
+    _inTab = if count > 1 then true else inTab
+    utils.simulateClick(matchedMarker.element, {metaKey: _inTab, ctrlKey: _inTab})
 
     matchedMarker.element.target = targetReset if targetReset
 
+    count -= 1
     isEditable = utils.isElementEditable(matchedMarker.element)
-    if multiple and not isEditable
+    if (multiple or count > 0) and not isEditable
       # By not resetting immediately one is able to see the last char being
       # matched, which gives some nice visual feedback that you've typed the
       # right char.
