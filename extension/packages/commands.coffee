@@ -149,7 +149,7 @@ command_open_tab_near_current = (vim) ->
   vim.rootWindow.focusAndSelectUrlBar()
 
 helper_switch_tab = (direction, vim, event, count) ->
-  gBrowser = vim.rootWindow.gBrowser
+  { gBrowser } = vim.rootWindow
 
   if count == 1
     gBrowser.tabContainer.advanceSelectedTab(direction, wrap = true)
@@ -202,13 +202,15 @@ command_tab_last = (vim) ->
   vim.rootWindow.gBrowser.selectTabAtIndex(-1)
 
 # Close current tab.
-command_close_tab = (vim) ->
-  unless vim.rootWindow.gBrowser.selectedTab.pinned
-    vim.rootWindow.gBrowser.removeCurrentTab()
+command_close_tab = (vim, event, count) ->
+  { gBrowser } = vim.rootWindow
+  currentIndex = gBrowser.visibleTabs.indexOf(gBrowser.selectedTab)
+  for tab in gBrowser.visibleTabs[currentIndex...(currentIndex + count)]
+    gBrowser.removeTab(tab)
 
 # Restore last closed tab.
-command_restore_tab = (vim) ->
-  vim.rootWindow.undoCloseTab()
+command_restore_tab = (vim, event, count) ->
+  vim.rootWindow.undoCloseTab() for idx in [1..count]
 
 helper_follow = ({ inTab, multiple }, vim, event, count) ->
   callback = (matchedMarker, markers) ->
