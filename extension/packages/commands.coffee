@@ -201,12 +201,23 @@ command_tab_first_non_pinned = (vim) ->
 command_tab_last = (vim) ->
   vim.rootWindow.gBrowser.selectTabAtIndex(-1)
 
+# Toggle Pin Tab
+command_toggle_pin_tab = (vim) ->
+  console.log "pinning tab"
+  currenTab = vim.rootWindow.gBrowser.selectedTab
+
+  console.log "yes inside #{currenTab}"
+  if currenTab.pinned
+    vim.rootWindow.gBrowser.unpinTab(currenTab)
+  else
+    vim.rootWindow.gBrowser.pinTab(currenTab)
+
 # Duplicate current tab.
 command_duplicate_tab = (vim) ->
   { gBrowser } = vim.rootWindow
   gBrowser.duplicateTab(gBrowser.selectedTab)
 
-# Close all tabs from current to the right.
+# Close all tabs from current to the end.
 command_close_tabs_to_end = (vim) ->
   { gBrowser } = vim.rootWindow
   gBrowser.removeTabsToTheEndFrom(gBrowser.selectedTab)
@@ -419,6 +430,7 @@ commands = [
   new Command('tabs',   'tab_first',             command_tab_first,             ['g,H', 'g,0'])
   new Command('tabs',   'tab_first_non_pinned',  command_tab_first_non_pinned,  ['g,^'])
   new Command('tabs',   'tab_last',              command_tab_last,              ['g,L', 'g,$'])
+  new Command('tabs',   'toggle_pin_tab',        command_toggle_pin_tab,        [])
   new Command('tabs',   'duplicate_tab',         command_duplicate_tab,         [])
   new Command('tabs',   'close_tabs_to_end',     command_close_tabs_to_end,     [])
   new Command('tabs',   'close_other_tabs',      command_close_other_tabs,      [])
