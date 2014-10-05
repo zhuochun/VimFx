@@ -139,19 +139,26 @@ command_scroll_page_up = (vim) ->
 command_open_tab = (vim) ->
   vim.rootWindow.BrowserOpenTab()
 
+absoluteTabIndex = (relativeIndex, gBrowser) ->
+  tabs = gBrowser.visibleTabs
+  { selectedTab } = gBrowser
+
+  currentIndex  = tabs.indexOf(selectedTab)
+  absoluteIndex = currentIndex + relativeIndex
+  numTabs       = tabs.length
+
+  wrap = (Math.abs(relativeIndex) == 1)
+  if wrap
+    absoluteIndex %%= numTabs
+  else
+    absoluteIndex = Math.max(0, absoluteIndex)
+    absoluteIndex = Math.min(absoluteIndex, numTabs - 1)
+
+  return absoluteIndex
+
 helper_switch_tab = (direction, vim, event, count) ->
   { gBrowser } = vim.rootWindow
-
-  if count == 1
-    gBrowser.tabContainer.advanceSelectedTab(direction, wrap = true)
-  else
-    currentIndex = gBrowser.visibleTabs.indexOf(gBrowser.selectedTab)
-
-    targetIndex = currentIndex + count * direction
-    targetIndex = Math.max(0, targetIndex)
-    targetIndex = Math.min(targetIndex, gBrowser.visibleTabs.length - 1)
-
-    gBrowser.selectTabAtIndex(targetIndex)
+  gBrowser.selectTabAtIndex(absoluteTabIndex(direction * count, gBrowser))
 
 # Switch to the previous tab.
 command_tab_prev = helper_switch_tab.bind(undefined, -1)
@@ -159,21 +166,25 @@ command_tab_prev = helper_switch_tab.bind(undefined, -1)
 # Switch to the next tab.
 command_tab_next = helper_switch_tab.bind(undefined, +1)
 
+helper_move_tab = (direction, vim, event, count) ->
+  { gBrowser }    = vim.rootWindow
+  { selectedTab } = gBrowser
+  { pinned }      = selectedTab
+
+  index = absoluteTabIndex(direction * count, gBrowser)
+
+  if index < gBrowser._numPinnedTabs
+    gBrowser.pinTab(selectedTab) unless pinned
+  else
+    gBrowser.unpinTab(selectedTab) if pinned
+
+  gBrowser.moveTabTo(selectedTab, index)
+
 # Move the current tab backward.
-command_tab_move_left = (vim) ->
-  { gBrowser } = vim.rootWindow
-  lastIndex = gBrowser.tabContainer.selectedIndex
-  gBrowser.moveTabBackward()
-  if gBrowser.tabContainer.selectedIndex == lastIndex
-    gBrowser.moveTabToEnd()
+command_tab_move_left = helper_move_tab.bind(undefined, -1)
 
 # Move the current tab forward.
-command_tab_move_right = (vim) ->
-  { gBrowser } = vim.rootWindow
-  lastIndex = gBrowser.tabContainer.selectedIndex
-  gBrowser.moveTabForward()
-  if gBrowser.tabContainer.selectedIndex == lastIndex
-    gBrowser.moveTabToStart()
+command_tab_move_right = helper_move_tab.bind(undefined, +1)
 
 # Load the home page.
 command_home = (vim) ->
@@ -256,21 +267,30 @@ command_follow_prev = helper_follow_pattern.bind(undefined, 'prev')
 command_follow_next = helper_follow_pattern.bind(undefined, 'next')
 
 # Go up one level in the URL hierarchy.
-command_go_up_path = (vim) ->
-  path = vim.window.location.pathname
-  vim.window.location.pathname = path.replace(/// / [^/]+ /?$ ///, '')
+command_go_up_path = (vim, event, count) ->
+  { pathname } = vim.window.location
+  vim.window.location.pathname = pathname.replace(
+    /// (?: /[^/]+ ){1,#{ count }} /?$ ///, ''
+  )
 
 # Go up to root of the URL hierarchy.
 command_go_to_root = (vim) ->
   vim.window.location.href = vim.window.location.origin
 
+helper_go_history = (num, vim, event, count) ->
+  { index } = vim.rootWindow.getWebNavigation().sessionHistory
+  { history } = vim.window
+  num *= count
+  num = Math.max(num, -index)
+  num = Math.min(num, history.length - 1 - index)
+  return if num == 0
+  history.go(num)
+
 # Go back in history.
-command_back = (vim) ->
-  vim.rootWindow.BrowserBack()
+command_back = helper_go_history.bind(undefined, -1)
 
 # Go forward in history.
-command_forward = (vim) ->
-  vim.rootWindow.BrowserForward()
+command_forward = helper_go_history.bind(undefined, +1)
 
 findStorage = {lastSearchString: ''}
 
